@@ -5,12 +5,15 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 
+import common.Common;
 import common.Message;
 /**
  * Nous devrons avoir un ClientThread par client. 
  * Cette classe hérite de la classe Thread de Java.
  * @author Mathieu Moreault
  * @author Anthony Lavallée
+ * @author Élise Leclerc
+ * @author Pierre Marion
  */
 public class ClientThread extends Thread
 {
@@ -46,7 +49,7 @@ public class ClientThread extends Thread
 			this.sInput  = new ObjectInputStream(socket.getInputStream());
 			//Le userName est dans le stream d'Input
 			this.userName = (String) sInput.readObject();
-			//À FAIRE : MÉTHODE POUR AFFICHER QUE LE CLIENT S'EST CONNECTÉ
+			server.broadcast(this.userName + " " + Common.MESSAGE_CONNECTED);
 		}
 		catch (IOException e)
 		{
@@ -151,5 +154,9 @@ public class ClientThread extends Thread
 		{
 			//AFFICHER UNE ERREUR GÉNÉRIQUE
 		}
+	}
+	public String getUsername()
+	{
+		return userName;
 	}
 }

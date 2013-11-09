@@ -10,6 +10,8 @@ import java.util.Date;
  * pourquoi.
  * @author Mathieu Moreault
  * @author Anthony Lavallée
+ * @author Élise Leclerc
+ * @author Pierre Marion
  */
 public class Message implements Serializable 
 {

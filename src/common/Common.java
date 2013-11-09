@@ -5,9 +5,14 @@ package common;
  * sont utilisées par le client ET par le server.
  * @author Mathieu Moreault
  * @author Anthony Lavallée
+ * @author Élise Leclerc
+ * @author Pierre Marion
  */
 
 public class Common {
+	public static final String ERROR_GENERIC = "Erreur: L'application a rencontré une erreur";
+	public static final int DEFAULT_PORT = 5000;
+	public static final String MESSAGE_CONNECTED = "s'est connecté.";
 	/**
 	 * Cette fonction valide le port avant de l'assigner au server. 
 	 * À noter que plusieurs ports sont réservés.

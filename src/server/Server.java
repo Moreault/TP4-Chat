@@ -14,21 +14,21 @@ import common.Message;
  * clients connectés.
  * @author Mathieu Moreault
  * @author Anthony Lavallée
+ * @author Élise Leclerc
+ * @author Pierre Marion
  */
 
 public class Server 
 {
 	//Messages d'erreur
-	static final String ERROR_CLIENT_DISCONNECTED = "a été déconnecté par manque de réponse.";
-	static final String ERROR_CANNOT_CONNECT_CLIENT = "Erreur: la connexion au client a échoué.";
-	static final String ERROR_CANNOT_CREATE_SERVERSOCKET = "Erreur: la création du Server Socket à échoué.";
-	static final String ERROR_GENERIC = "Erreur: L'application a retourné une erreur";
-	static final String ERROR_INVALID_PORT = "Port invalide: Veuillez en choisir un entre 1 et 65535";
-	static final int DEFAULT_PORT = 5000;
+	private static final String ERROR_CLIENT_DISCONNECTED = "a été déconnecté par manque de réponse.";
+	private static final String ERROR_CANNOT_CONNECT_CLIENT = "Erreur: la connexion au client a échoué.";
+	private static final String ERROR_CANNOT_CREATE_SERVERSOCKET = "Erreur: la création du Server Socket à échoué.";
+	private static final String ERROR_INVALID_PORT = "Port invalide: Veuillez en choisir un entre 1 et 65535";
 	//Cette option peut être changée si l'administrateur ne veut pas voir les timestamps
-	static final boolean TIMESTAMPS = true;
+	private static final boolean TIMESTAMPS = true;
 	//La liste des clients connectés au server
-	private ArrayList<ClientThread> clientList;
+	private ArrayList<ClientThread> clientList = new ArrayList<ClientThread>();
 	//Le port utilisé par le server. Les clients doivent utiliser le même
 	private int port;
 	//Cette variable s'incrémente à chaque fois qu'un client se connecte
@@ -44,7 +44,7 @@ public class Server
 	 */
 	public static void main(String[] args) 
 	{
-		int tempPort = DEFAULT_PORT;
+		int tempPort = Common.DEFAULT_PORT;
 		if (args.length == 1)
 		{
 			try
@@ -89,7 +89,7 @@ public class Server
 		return currentID;
 	}
 	/**
-	 * Cette méthode commence l'écoute du server.
+	 * Cette méthode commence l'écoute du server pour les connexions de clients.
 	 */
 	private void start()
 	{
@@ -147,7 +147,7 @@ public class Server
 		}
 		catch (Exception e)
 		{
-			serverEcho(ERROR_GENERIC);
+			serverEcho(Common.ERROR_GENERIC);
 		}
 	}
 	/**
@@ -173,7 +173,7 @@ public class Server
 	 * @param msg Le message à envoyer
 	 * @see Constante TIMESTAMPS pour afficher ou non le temps avant le message.
 	 */
-	private synchronized void broadcast(String msg)
+	public synchronized void broadcast(String msg)
 	{
 		String finalmsg = new String(msg + "\n");
 		if (TIMESTAMPS)
@@ -191,7 +191,7 @@ public class Server
 			if (!tempThread.sendMessage(finalmsg))
 			{
 				clientList.remove(i);
-				serverEcho(tempThread.getName() + " " + ERROR_CLIENT_DISCONNECTED);
+				serverEcho(tempThread.getUsername() + " " + ERROR_CLIENT_DISCONNECTED);
 				//À FAIRE : POSSIBLEMENT BROADCASTER LE LOGOUT OU LE TIMEOUT SUR LE CHAT
 			}
 		}
