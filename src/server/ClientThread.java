@@ -49,7 +49,6 @@ public class ClientThread extends Thread
 			this.sInput  = new ObjectInputStream(socket.getInputStream());
 			//Le userName est dans le stream d'Input
 			this.userName = (String) sInput.readObject();
-			server.broadcast(this.userName + " " + Common.MESSAGE_CONNECTED);
 		}
 		catch (IOException e)
 		{
@@ -96,7 +95,7 @@ public class ClientThread extends Thread
 			}
 			else if (message.getType() == Message.MESSAGE)
 			{
-				//FAIRE UN BROADCAST POUR AFFICHER UN MESSAGE STANDARD À TOUS LES CLIENTS
+				server.broadcast(text);
 			}
 			else if (message.getType() == Message.ACTION)
 			{

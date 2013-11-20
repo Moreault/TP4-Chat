@@ -111,6 +111,8 @@ public class Server
 				//Fait un nouveau thread et l'ajoute à la liste de client connectés
 				ClientThread thread = new ClientThread(this, clientSocket, incrID());
 				clientList.add(thread);
+				//Broadcast pour dire qu'un client s'est connecté
+				this.broadcast(thread.getUsername() + " " + Common.MESSAGE_CONNECTED);
 				thread.start();
 			}
 			//On a tenté de dire au server d'arrêter l'écoute
@@ -183,7 +185,7 @@ public class Server
 		System.out.print(finalmsg);
 		//Il faut faire une boucle à l'envers pour enlever un client
 		//si un d'eux à été déconnecté
-		for (int i = clientList.size(); i >= 0; i--)
+		for (int i = clientList.size() - 1; i >= 0; i--)
 		{
 			ClientThread tempThread = clientList.get(i);
 			//On essaie d'envoyer le message au client, si ça ne fonctionne pas,
