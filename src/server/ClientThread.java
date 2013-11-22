@@ -17,6 +17,9 @@ import common.Message;
  */
 public class ClientThread extends Thread
 {
+	private static final String ERROR_COULD_NOT_SEND_MESSAGE = "Erreur: Le message n'a pas pu être envoyé à";
+	private static final String ERROR_COULD_NOT_CREATE_THREAD = "Erreur: Le thread du client n'a pas pu être créé.";
+	private static final String ERROR_CLOSING_STREAMS = "Erreur: L'application doit fermer les streams d'entrée/sortie.";
 	//L'information relative au client connecté
 	private String userName;
 	private int clientID;
@@ -52,20 +55,21 @@ public class ClientThread extends Thread
 		}
 		catch (IOException e)
 		{
-			//À FAIRE : MÊME MÉTHODE QU'EN HAUT, AFFICHE UNE ERREUR
+			Server.serverEcho(ERROR_COULD_NOT_CREATE_THREAD);
 			//Annule la création du thread
 			return;
 		}
 		catch (ClassNotFoundException e2)
 		{
-			//À FAIRE : MÊME MÉTHODE QU'EN HAUT, AFFICHE UNE ERREUR GÉNÉRIQUE
+			Server.serverEcho(ERROR_COULD_NOT_CREATE_THREAD);
 			return;
 		}
 	}
 	/**
-	 * Cette méthode continuera de s'exécuter tant que le client restera connecté.
+	 * Cette méthode remplace celle de la classe Thread de Java. Elle continuera
+	 * de s'exécuter dans une boucle infinie tant que le client restera connecté.
 	 */
-	public void connection()
+	public void run()
 	{
 		boolean connected = true;
 		while (connected)
@@ -76,7 +80,7 @@ public class ClientThread extends Thread
 			}
 			catch (IOException e)
 			{
-				//À FAIRE : AFFICHE UNE ERREUR
+				Server.serverEcho(Common.ERROR_GENERIC);
 				break;
 			}
 			catch (ClassNotFoundException e2)
@@ -95,7 +99,7 @@ public class ClientThread extends Thread
 			}
 			else if (message.getType() == Message.MESSAGE)
 			{
-				server.broadcast(text);
+				server.broadcast(text, this.userName);
 			}
 			else if (message.getType() == Message.ACTION)
 			{
@@ -107,7 +111,7 @@ public class ClientThread extends Thread
 		this.closeStreams();
 	}
 	/**
-	 * Cette méthode envoit un message au client
+	 * Cette méthode envoit un message au client.
 	 * @return True si le message a été envoyé, False sinon
 	 */
 	public boolean sendMessage(String msg)
@@ -125,8 +129,7 @@ public class ClientThread extends Thread
 		}
 		catch (IOException e)
 		{
-			//Informer le client que son message ne s'est pas rendu
-			//À FAIRE
+			Server.serverEcho(ERROR_COULD_NOT_SEND_MESSAGE + " " + this.userName);
 		}
 		return true;
 	}
@@ -151,7 +154,7 @@ public class ClientThread extends Thread
 		}
 		catch (Exception e)
 		{
-			//AFFICHER UNE ERREUR GÉNÉRIQUE
+			Server.serverEcho(ERROR_CLOSING_STREAMS);
 		}
 	}
 	public String getUsername()

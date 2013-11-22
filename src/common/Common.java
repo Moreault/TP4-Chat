@@ -28,4 +28,14 @@ public class Common {
 		}
 		return false;
 	}
+	/**
+	 * Fonction qui formatte les noms d'utilisateur. Placé ici pour changer aisément
+	 * le formattage.
+	 * @userName _port Le nom d'utilisateur à formatter.
+	 * @return Le nom formatté.
+	 */
+	static public String formatName(String userName)
+	{
+		return "<" + userName + ">";
+	}
 }

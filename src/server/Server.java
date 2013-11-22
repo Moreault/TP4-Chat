@@ -159,7 +159,7 @@ public class Server
 	 * @param msg Le message à afficher
 	 * @see Constante TIMESTAMPS pour afficher ou non le temps avant le message.
 	 */
-	static private void serverEcho(String msg)
+	static public void serverEcho(String msg)
 	{
 		String finalmsg = new String(msg);
 		if (TIMESTAMPS)
@@ -169,18 +169,38 @@ public class Server
 		System.out.println(finalmsg);
 	}
 	/**
-	 * Affiche un message sur le server seulement. Utile pour les messages d'erreurs
-	 * et les notifications en général. Personne ne peut et ne devrait voir ce texte
-	 * sauf les administrateurs du server.
+	 * Envoie un message avec nom d'utilisateur à tous les clients connectés.
+	 * @param user Le nom de l'utilisateur qui envoit le message.
 	 * @param msg Le message à envoyer
+	 */
+	public void broadcast(String msg, String user)
+	{
+		this.broadcastFinal(msg, user);
+	}
+	/**
+	 * Envoie un message sans nom d'utilisateur à tous les clients connectés.
+	 * @param msg Le message à envoyer
+	 */
+	public void broadcast(String msg)
+	{
+		this.broadcastFinal(msg, "Server");
+	}
+	/**
+	 * Envoit un message à tous les clients connectés
+	 * @param msg Le message à envoyer.
+	 * @param user Le nom de l'utilisateur qui envoit le message. "Server" ne met pas de nom.
 	 * @see Constante TIMESTAMPS pour afficher ou non le temps avant le message.
 	 */
-	public synchronized void broadcast(String msg)
+	private synchronized void broadcastFinal(String msg, String user)
 	{
 		String finalmsg = new String(msg + "\n");
+		if (!user.equalsIgnoreCase("Server"))
+		{
+			finalmsg = Common.formatName(user) + " " + finalmsg;
+		}
 		if (TIMESTAMPS)
 		{
-			finalmsg = Message.timeStamp() + " " + msg;
+			finalmsg = Message.timeStamp() + " " + finalmsg;
 		}
 		System.out.print(finalmsg);
 		//Il faut faire une boucle à l'envers pour enlever un client
