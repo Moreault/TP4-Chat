@@ -43,7 +43,7 @@ public class ServerListener extends Thread
 				String msg = this.sInput.readObject().toString();
 				//À FAIRE : Lorsque nous aurons l'interface graphique, ces messages
 				//s'afficheront dedans, pas dans la console. Duh.
-				System.out.println(msg);
+				System.out.print(msg);
 				System.out.print("> ");
 			}
 			catch (IOException e)
