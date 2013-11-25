@@ -1,10 +1,34 @@
 package client;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.StringReader;
+import java.io.UnsupportedEncodingException;
 import java.net.Socket;
 import java.util.Scanner;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+
+import org.simpleframework.xml.Serializer;
+import org.simpleframework.xml.core.Persister;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.ls.DOMImplementationLS;
+import org.w3c.dom.ls.LSSerializer;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
 import common.Common;
 import common.Message;
@@ -51,6 +75,7 @@ public class Client {
 		{
 			System.out.print("> ");
 			String userMsg = scanner.nextLine();
+			
 			//Envoie de message au server
 			if (userMsg.equalsIgnoreCase("LOGOUT"))
 			{
@@ -207,5 +232,32 @@ public class Client {
 		{
 			//À FAIRE : AFFICHER UN MESSAGE D'ERREUR (LE MESSAGE N'A PAS PU ÊTRE ENVOYÉ)
 		}
+	}
+	
+	private static String convertMessageToXML(String message)
+	{
+		Serializer serializer = new Persister();
+		
+		File result = new File("example.xml");
+		
+		String line = null;
+
+		
+		try {
+			serializer.write(message, result);
+			BufferedReader br = new BufferedReader(new FileReader("example.xml"));
+			line = br.readLine();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		System.out.println(line);
+		return line;
 	}
 }
