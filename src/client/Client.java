@@ -119,7 +119,7 @@ public class Client {
 	 * Démarre la communication entre le client et le server.
 	 * @return True si la connexion s'est effectué avec succès, False s'il y a une erreur
 	 */
-	private boolean start()
+	public boolean start()
 	{
 		//Tentative de se connecter au server
 		try
@@ -205,7 +205,7 @@ public class Client {
 	 * autres clients connectés.
 	 * @param message L'objet Message à envoyer.
 	 */
-	private void sendMessage(Message message)
+	public void sendMessage(Message message)
 	{
 		try
 		{

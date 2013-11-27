@@ -9,8 +9,8 @@ public class AppFrame extends Application
 	private static final String TITLE = "Chat Rafiki";
 	private static final double DEFAULT_LOCATION_X = 100;
 	private static final double DEFAULT_LOCATION_Y = 100;
-	private static final double HEIGHT_APPLICATION = 500;
-	private static final double WIDTH_APPLICATION = 700;
+	private static final double HEIGHT_APPLICATION = 525;
+	private static final double WIDTH_APPLICATION = 500;
 	
 	
 	@Override
