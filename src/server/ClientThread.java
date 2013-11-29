@@ -3,10 +3,15 @@ package server;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.StringReader;
 import java.net.Socket;
 
+import org.jdom2.Document;
+import org.jdom2.Element;
+import org.jdom2.JDOMException;
+import org.jdom2.input.SAXBuilder;
+
 import common.Common;
-import common.Message;
 /**
  * Nous devrons avoir un ClientThread par client. 
  * Cette classe hérite de la classe Thread de Java.
@@ -20,6 +25,7 @@ public class ClientThread extends Thread
 	private static final String ERROR_COULD_NOT_SEND_MESSAGE = "Erreur: Le message n'a pas pu être envoyé à";
 	private static final String ERROR_COULD_NOT_CREATE_THREAD = "Erreur: Le thread du client n'a pas pu être créé.";
 	private static final String ERROR_CLOSING_STREAMS = "Erreur: L'application doit fermer les streams d'entrée/sortie.";
+	private static final String INFO_CLIENT_DISCONNECTED = "Un client s'est déconnecté.";
 	//L'information relative au client connecté
 	private String userName;
 	private int clientID;
@@ -30,7 +36,7 @@ public class ClientThread extends Thread
 	//Le server
 	private Server server;
 	//Les messages que le client recevra
-	private Message message;
+	private String message;
 
 	/**
 	 * Le constructeur de la classe ClientThread. Le nom de l'utilisateur est lu
@@ -50,8 +56,14 @@ public class ClientThread extends Thread
 		{
 			this.sOutput = new ObjectOutputStream(socket.getOutputStream());
 			this.sInput  = new ObjectInputStream(socket.getInputStream());
-			//Le userName est dans le stream d'Input
-			this.userName = (String) sInput.readObject();
+			//Le userName est dans le stream d'Input en XML
+			String xml = new String((String) sInput.readObject());
+			//Faire un SAXBuilder
+			SAXBuilder builder = new SAXBuilder();
+			//Nous avons une string (message) que nous devons traiter comme du XML
+			Document document = builder.build(new StringReader(xml));
+			//Extrait la racine du document xml <username>
+			this.userName = document.getRootElement().getText();
 		}
 		catch (IOException e)
 		{
@@ -63,6 +75,10 @@ public class ClientThread extends Thread
 		{
 			Server.serverEcho(ERROR_COULD_NOT_CREATE_THREAD);
 			return;
+		} 
+		catch (JDOMException e) 
+		{
+			e.printStackTrace();
 		}
 	}
 	/**
@@ -76,34 +92,46 @@ public class ClientThread extends Thread
 		{
 			try
 			{
-				this.message = (Message) sInput.readObject();
+				this.message = (String) this.sInput.readObject();
+				//Faire un SAXBuilder
+				SAXBuilder builder = new SAXBuilder();
+				//Nous avons une string (message) que nous devons traiter comme du XML
+				Document document = builder.build(new StringReader(this.message));
+				//Extrait la racine du document xml <message>
+				Element root = document.getRootElement();
+				//Extraire la partie texte du message
+				String text = root.getChildText(Common.TAG_TEXT);
+				int msgType = Integer.parseInt(root.getChildText(Common.TAG_TYPE));
+				String msgRoom = root.getChildText(Common.TAG_ROOM);
+				if (msgType == Common.LOGOUT)
+				{
+					//FAIRE UN BROADCAST POUR ANNONCER LE LOGOUT D'UN CLIENT À TOUS LES CLIENTS
+				}
+				else if (msgType == Common.LOGGEDIN)
+				{
+					//FAIRE UN BROADCAST POUR ANNONCER LE LOGIN D'UN CLIENT À TOUS LES CLIENTS
+				}
+				else if (msgType == Common.MESSAGE)
+				{
+					server.broadcast(text, this.userName, msgType, msgRoom);
+				}
+				else if (msgType == Common.ACTION)
+				{
+					//FAIRE UN BROADCAST POUR AFFICHER UNE ACTION À TOUS LES CLIENTS
+				}
 			}
 			catch (IOException e)
 			{
-				Server.serverEcho(Common.ERROR_GENERIC);
+				Server.serverEcho(INFO_CLIENT_DISCONNECTED);
 				break;
 			}
 			catch (ClassNotFoundException e2)
 			{
 				break;
-			}
-			//Il faut extraire la partie texte du message
-			String text = message.getMessage();
-			if (message.getType() == Message.LOGOUT)
+			} 
+			catch (JDOMException e) 
 			{
-				//FAIRE UN BROADCAST POUR ANNONCER LE LOGOUT D'UN CLIENT À TOUS LES CLIENTS
-			}
-			else if (message.getType() == Message.LOGGEDIN)
-			{
-				//FAIRE UN BROADCAST POUR ANNONCER LE LOGIN D'UN CLIENT À TOUS LES CLIENTS
-			}
-			else if (message.getType() == Message.MESSAGE)
-			{
-				server.broadcast(text, this.userName);
-			}
-			else if (message.getType() == Message.ACTION)
-			{
-				//FAIRE UN BROADCAST POUR AFFICHER UNE ACTION À TOUS LES CLIENTS
+				e.printStackTrace();
 			}
 		}
 		//La boucle est terminée, s'enlever soi-même de la liste des clients

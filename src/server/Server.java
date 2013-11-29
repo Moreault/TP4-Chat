@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.Date;
 
 import common.Common;
-import common.Message;
 
 /**
  * Le server reçoit les connexions et les message du ou des clients et les envoit à tous les
@@ -112,7 +111,7 @@ public class Server
 				ClientThread thread = new ClientThread(this, clientSocket, incrID());
 				clientList.add(thread);
 				//Broadcast pour dire qu'un client s'est connecté
-				this.broadcast(thread.getUsername() + " " + Common.MESSAGE_CONNECTED);
+				this.broadcast(thread.getUsername(), Common.LOGGEDIN);
 				thread.start();
 			}
 			//On a tenté de dire au server d'arrêter l'écoute
@@ -164,26 +163,28 @@ public class Server
 		String finalmsg = new String(msg);
 		if (TIMESTAMPS)
 		{
-			finalmsg = Message.timeStamp() + " " + finalmsg;
+			finalmsg = Common.timeStamp() + " " + finalmsg;
 		}
 		System.out.println(finalmsg);
 	}
 	/**
 	 * Envoie un message avec nom d'utilisateur à tous les clients connectés.
-	 * @param user Le nom de l'utilisateur qui envoit le message.
-	 * @param msg Le message à envoyer
+	 * @param msgUsername Le nom de l'utilisateur qui envoit le message.
+	 * @param msgText Le message à envoyer
+	 * @param msgType Le type de message à envoyer
+	 * @param msgRoom Le cannal dans lequel le message est envoyé
 	 */
-	public void broadcast(String msg, String user)
+	public void broadcast(String msgText, String msgUsername, int msgType, String msgRoom)
 	{
-		this.broadcastFinal(msg, user);
+		this.broadcastFinal(msgText, msgUsername, msgType, "Default");
 	}
 	/**
 	 * Envoie un message sans nom d'utilisateur à tous les clients connectés.
 	 * @param msg Le message à envoyer
 	 */
-	public void broadcast(String msg)
+	public void broadcast(String msgText, int msgType)
 	{
-		this.broadcastFinal(msg, "Server");
+		this.broadcastFinal(msgText, "Server", msgType, "Default");
 	}
 	/**
 	 * Envoit un message à tous les clients connectés
@@ -191,18 +192,29 @@ public class Server
 	 * @param user Le nom de l'utilisateur qui envoit le message. "Server" ne met pas de nom.
 	 * @see Constante TIMESTAMPS pour afficher ou non le temps avant le message.
 	 */
-	private synchronized void broadcastFinal(String msg, String user)
+	private synchronized void broadcastFinal(String msgText, String msgUserName, int msgType, String msgRoom)
 	{
-		String finalmsg = new String(msg + "\n");
-		if (!user.equalsIgnoreCase("Server"))
+		//À FAIRE: ENVOYER DU XML AUX CLIENTS
+		//Dans un format du genre <message><username></username><text></text><type></type><room></room></message>
+		//LE CLIENT DEVRA ENSUITE INTERPRÉTER CELA COMME UN DOCUMENT XML
+		//Y LIRE LE NOM DE L'ENVOYEUR, LE CANNAL D'ENVOIE, ET LE TYPE DE MESSAGE, ETC...
+		
+		String xml = new String("<" + Common.TAG_MESSAGE + ">" 
+		+ "<" + Common.TAG_USERNAME + ">" + msgUserName + "</" + Common.TAG_USERNAME + ">"
+		+ "<" + Common.TAG_TEXT + ">" + msgText + "</" + Common.TAG_TEXT + ">"
+		+ "<" + Common.TAG_TYPE + ">" + msgType + "</" + Common.TAG_TYPE + ">"
+		+ "</" + Common.TAG_MESSAGE + ">");
+		
+		String serverSideMsg = new String (msgText + "\n");
+		if (!msgUserName.equalsIgnoreCase("Server"))
 		{
-			finalmsg = Common.formatName(user) + " " + finalmsg;
+			serverSideMsg = Common.formatName(msgUserName) + " " + serverSideMsg;
 		}
 		if (TIMESTAMPS)
 		{
-			finalmsg = Message.timeStamp() + " " + finalmsg;
+			serverSideMsg = Common.timeStamp() + " " + serverSideMsg;
 		}
-		System.out.print(finalmsg);
+		System.out.print(serverSideMsg);
 		//Il faut faire une boucle à l'envers pour enlever un client
 		//si un d'eux à été déconnecté
 		for (int i = clientList.size() - 1; i >= 0; i--)
@@ -210,7 +222,7 @@ public class Server
 			ClientThread tempThread = clientList.get(i);
 			//On essaie d'envoyer le message au client, si ça ne fonctionne pas,
 			//il a été déconnecté
-			if (!tempThread.sendMessage(finalmsg))
+			if (!tempThread.sendMessage(xml))
 			{
 				clientList.remove(i);
 				serverEcho(tempThread.getUsername() + " " + ERROR_CLIENT_DISCONNECTED);

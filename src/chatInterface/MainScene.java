@@ -18,7 +18,8 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import client.Client;
-import common.Message;
+import common.Common;
+
 
 public class MainScene extends Scene
 {
@@ -76,10 +77,8 @@ public class MainScene extends Scene
 			@Override
 			public void handle(ActionEvent arg0)
 			{
+				sendMessageToTextArea(textField, textArea);
 				
-				client.sendMessage(new Message(Message.MESSAGE, textField.getText()));
-				textArea.setText(textField.getText());
-				textField.clear();
 			}
 		});
 		
@@ -89,10 +88,7 @@ public class MainScene extends Scene
 			{
 			    if (event.getCode() == KeyCode.ENTER) 
 			    { 
-			    	
-					client.sendMessage(new Message(Message.MESSAGE, textField.getText()));
-					textArea.setText(textField.getText());
-					textField.clear();
+			    	sendMessageToTextArea(textField, textArea);
 			    }
 			}
 		});		
@@ -133,6 +129,14 @@ public class MainScene extends Scene
 		
 		this.root.setTop(menuBar);
 		
+	}
+	
+	
+	public void sendMessageToTextArea(TextField textField, TextArea textArea)
+	{
+		this.client.sendMessage(textField.getText() + "\n", Common.MESSAGE, "Test");
+		textArea.appendText(textField.getText());
+		textField.clear();
 	}
 
 }

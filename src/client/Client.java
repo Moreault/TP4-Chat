@@ -10,11 +10,7 @@ import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Scanner;
 
-import org.simpleframework.xml.Serializer;
-import org.simpleframework.xml.core.Persister;
-
 import common.Common;
-import common.Message;
 
 /**
  * Le client envoit des messages au server et le server les envoit à tous les clients.
@@ -29,7 +25,10 @@ public class Client {
 	//Les constantes
 	private static final String ERROR_CANNOT_CONNECT_TO_SERVER = "Erreur: Le client n'a pas pu se connecter au server.";
 	private static final String ERROR_CANNOT_CREATE_IOSTREAM = "Erreur: Le client n'a pas pu créer le stream d'entrée-sortie.";
+	private static final String ERROR_CANNOT_CREATE_SOCKET = "Erreur: Le client n'a pas pu créer le socket.";
 	private static final String ERROR_CANNOT_SEND_MESSAGE = "Erreur: Le message n'a pas pu être envoyé.";
+	private static final String ERROR_DISCONNECTED_BECAUSE_OF_USERNAME = "Erreur: Vous avez été déconnecté pour votre nom d'utilisateur.";
+	private static final String INFO_CONNECTION_SUCESS = "La conenxion avec le serveur a été établie:";
 	
 	//Les variables de stream (Input, Output et socket)
 	private ObjectInputStream sInput;
@@ -39,6 +38,8 @@ public class Client {
 	private String myServer;
 	private String myUsername;
 	private int myPort;
+	//Option de mettre les timestamps pour le client
+	private boolean timeStamps = true;
 	
 
 	public static void main(String[] args) 
@@ -58,16 +59,15 @@ public class Client {
 		{
 			System.out.print("> ");
 			String userMsg = scanner.nextLine();
-			
 			//Envoie de message au server
 			if (userMsg.equalsIgnoreCase("LOGOUT"))
 			{
-				client.sendMessage(new Message(Message.LOGOUT, ""));
+				client.sendMessage("", Common.LOGOUT, "");
 				break;
 			}
 			else
 			{
-				client.sendMessage(new Message(Message.MESSAGE, userMsg));
+				client.sendMessage(userMsg, Common.MESSAGE, "Default");
 			}
 		}
 		//Lorsque la boucle se termine, on se déconnecte
@@ -128,14 +128,13 @@ public class Client {
 		}
 		catch (Exception e)
 		{
-			//À FAIRE : MESSAGE D'ERREUR NE PEUT PAS SE CONNECTER AU SERVER
+			this.clientEcho(ERROR_CANNOT_CREATE_SOCKET);
 			//Il faut l'arrêter dans ce cas.
 			return false;
 		}
-		//À FAIRE : INFORMER QUE LA CONNEXION A BIEN EU LIEU AVEC LE SERVER
-		//UTILISER socket.getInetAddress() ET socket.getPort() POUR MONTRER QUE ÇA
-		//A BIEN ÉTÉ FAIT
-		
+		//Informe le client que la connexion a été établie
+		this.clientEcho(INFO_CONNECTION_SUCESS + " " + socket.getInetAddress() + ", " + socket.getPort() + ")");
+	
 		//Il faut créer les stream d'entré-sortie
 		try
 		{
@@ -144,19 +143,19 @@ public class Client {
 		}
 		catch (IOException e)
 		{
-			//À FAIRE : AFFICHER UNE ERREUR DISANT QUE LE CLIENT N'A PAS PU
-			//CRÉER DE STREAM D'ENTRÉE-SORTIE
+			this.clientEcho(ERROR_CANNOT_CREATE_IOSTREAM);
 		}
 		//Ceci créé un thread pour écouter le server
-		new ServerListener(this.sInput, this.sOutput).start();
-		//Nous devons ensuite envoyer notre nom d'utilisateur au server
+		new ServerListener(this, this.sInput, this.sOutput).start();
+		//Nous devons ensuite envoyer notre nom d'utilisateur au server en format XML
+		String xml = new String("<" + Common.TAG_USERNAME + ">" + this.myUsername + "</" + Common.TAG_USERNAME + ">");
 		try
 		{
-			this.sOutput.writeObject(this.myUsername);
+			this.sOutput.writeObject(xml);
 		}
 		catch (IOException e)
 		{
-			//À FAIRE : AFFICHER UN MESSAGE D'ERREUR, DÉCONNEXION/NOM REFUSÉ(?)
+			this.clientEcho(ERROR_DISCONNECTED_BECAUSE_OF_USERNAME);
 			this.disconnect();
 			return false;
 		}
@@ -186,7 +185,7 @@ public class Client {
 		}
 		catch (Exception e)
 		{
-			//À FAIRE : AFFICHER UNE ERREUR GÉNÉRIQUE
+			this.clientEcho(Common.ERROR_GENERIC);
 		}
 	}
 	/**
@@ -197,50 +196,41 @@ public class Client {
 	 */
 	public void clientEcho(String msg)
 	{
-		String finalmsg = "(" + msg + ")";
+		String finalmsg = "** " + msg;
+		if (timeStamps)
+		{
+			finalmsg = Common.timeStamp() + " " + finalmsg;
+		}
+		//À FAIRE: Envoyer dans l'interface graphique
 		System.out.println(finalmsg);
 	}
 	/**
 	 * Cette méthode envoie un message au server pour être traité et envoyé aux
-	 * autres clients connectés.
-	 * @param message L'objet Message à envoyer.
+	 * autres clients connectés. Avant de l'envoyer, le message doit être formatté
+	 * comme un document XML pouvant être lu convenablement par le server.
+	 * @param msgText Le texte du message à envoyer
+	 * @param msgType Le type du message en integer
+	 * @param msgRoom Le cannal dans lequel le message est envoyé
 	 */
-	public void sendMessage(Message message)
+	public void sendMessage(String msgText, int msgType, String msgRoom)
 	{
+		//La structure xml est <message><text></text><type></type><room></room></message>
+		String xml = new String("<" + Common.TAG_MESSAGE + ">" 
+		+ "<" + Common.TAG_TEXT + ">" + msgText + "</" + Common.TAG_TEXT + ">"
+		+ "<" + Common.TAG_TYPE + ">" + msgType + "</" + Common.TAG_TYPE + ">"
+		+ "<" + Common.TAG_ROOM + ">" + msgRoom + "</" + Common.TAG_ROOM + ">"
+		+ "</" + Common.TAG_MESSAGE + ">");
 		try
 		{
-			sOutput.writeObject(message);
+			sOutput.writeObject(xml);
 		}
 		catch (IOException e)
 		{
-			//À FAIRE : AFFICHER UN MESSAGE D'ERREUR (LE MESSAGE N'A PAS PU ÊTRE ENVOYÉ)
+			this.clientEcho(ERROR_CANNOT_SEND_MESSAGE);
 		}
 	}
-	
-	private static String convertMessageToXML(String message)
+	public boolean getTimestamps()
 	{
-		Serializer serializer = new Persister();
-		
-		File result = new File("example.xml");
-		
-		String line = null;
-
-		
-		try {
-			serializer.write(message, result);
-			BufferedReader br = new BufferedReader(new FileReader("example.xml"));
-			line = br.readLine();
-		} catch (FileNotFoundException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		System.out.println(line);
-		return line;
+		return this.timeStamps;
 	}
 }
