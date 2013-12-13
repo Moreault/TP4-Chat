@@ -1,14 +1,12 @@
 package client;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.net.Socket;
 import java.util.Scanner;
+
+import chatInterface.MainScene;
 
 import common.Common;
 
@@ -38,8 +36,9 @@ public class Client {
 	private String myServer;
 	private String myUsername;
 	private int myPort;
+	private MainScene myGUI;
 	//Option de mettre les timestamps pour le client
-	private boolean timeStamps = true;
+	private final boolean timeStamps = true;
 	
 
 	public static void main(String[] args) 
@@ -60,7 +59,7 @@ public class Client {
 			System.out.print("> ");
 			String userMsg = scanner.nextLine();
 			//Envoie de message au server
-			if (userMsg.equalsIgnoreCase("LOGOUT"))
+			if (userMsg.equalsIgnoreCase(Common.COMMAND_LOGOUT))
 			{
 				client.sendMessage("", Common.LOGOUT, "");
 				break;
@@ -85,6 +84,20 @@ public class Client {
 		this.setUsername(_myUsername);
 		this.setServer(_myServer);
 		this.setPort(_myPort);
+	}
+	/**
+	 * Le constructeur de la classe Client avec interface graphique
+	 * @param _myUsername Le nom d'utilisateur choisit.
+	 * @param _myServer L'adresse du server (Utiliser "localhost" pour se connecter en local.)
+	 * @param _myPort Le port doit être le même que celui du server pour se connecter.
+	 * @param _myGUI L'interface graphique utilisée par le client.
+	 */
+	public Client(String _myUsername, String _myServer, int _myPort, MainScene _myGUI)
+	{
+		this.setUsername(_myUsername);
+		this.setServer(_myServer);
+		this.setPort(_myPort);
+		this.myGUI = _myGUI;
 	}
 	/**
 	 * Change le nom de l'utilisateur.
@@ -166,7 +179,7 @@ public class Client {
 	 * Force la déconnexion au server lorsqu'une erreur est rencontré et que la
 	 * connexion doit être terminée. Les streams d'entrée-sortie sont fermés.
 	 */
-	private void disconnect()
+	public void disconnect()
 	{
 		try
 		{
@@ -203,6 +216,8 @@ public class Client {
 		}
 		//À FAIRE: Envoyer dans l'interface graphique
 		System.out.println(finalmsg);
+		
+		
 	}
 	/**
 	 * Cette méthode envoie un message au server pour être traité et envoyé aux
@@ -215,6 +230,8 @@ public class Client {
 	public void sendMessage(String msgText, int msgType, String msgRoom)
 	{
 		//La structure xml est <message><text></text><type></type><room></room></message>
+		msgText = msgText.replace("<", "«");
+		msgText = msgText.replace(">", "»");
 		String xml = new String("<" + Common.TAG_MESSAGE + ">" 
 		+ "<" + Common.TAG_TEXT + ">" + msgText + "</" + Common.TAG_TEXT + ">"
 		+ "<" + Common.TAG_TYPE + ">" + msgType + "</" + Common.TAG_TYPE + ">"
@@ -232,5 +249,15 @@ public class Client {
 	public boolean getTimestamps()
 	{
 		return this.timeStamps;
+	}
+	public MainScene getGUI()
+	{
+		return this.myGUI;
+	}
+	
+	public void updateNameUser(String newUser)
+	{
+		this.setUsername(newUser);
+		
 	}
 }

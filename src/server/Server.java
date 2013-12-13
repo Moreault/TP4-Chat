@@ -2,9 +2,7 @@ package server;
 
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 
 import common.Common;
 
@@ -27,7 +25,7 @@ public class Server
 	//Cette option peut être changée si l'administrateur ne veut pas voir les timestamps
 	private static final boolean TIMESTAMPS = true;
 	//La liste des clients connectés au server
-	private ArrayList<ClientThread> clientList = new ArrayList<ClientThread>();
+	private final ArrayList<ClientThread> clientList = new ArrayList<ClientThread>();
 	//Le port utilisé par le server. Les clients doivent utiliser le même
 	private int port;
 	//Cette variable s'incrémente à chaque fois qu'un client se connecte
@@ -107,12 +105,19 @@ public class Server
 				{
 					break;
 				}
+				
+				
 				//Fait un nouveau thread et l'ajoute à la liste de client connectés
 				ClientThread thread = new ClientThread(this, clientSocket, incrID());
 				clientList.add(thread);
+				//thread.sendUserlist(clientList);
+				this.broadcastUserlist(); 
 				//Broadcast pour dire qu'un client s'est connecté
 				this.broadcast(thread.getUsername(), Common.LOGGEDIN);
 				thread.start();
+				
+				
+				
 			}
 			//On a tenté de dire au server d'arrêter l'écoute
 			try
@@ -194,11 +199,6 @@ public class Server
 	 */
 	private synchronized void broadcastFinal(String msgText, String msgUserName, int msgType, String msgRoom)
 	{
-		//À FAIRE: ENVOYER DU XML AUX CLIENTS
-		//Dans un format du genre <message><username></username><text></text><type></type><room></room></message>
-		//LE CLIENT DEVRA ENSUITE INTERPRÉTER CELA COMME UN DOCUMENT XML
-		//Y LIRE LE NOM DE L'ENVOYEUR, LE CANNAL D'ENVOIE, ET LE TYPE DE MESSAGE, ETC...
-		
 		String xml = new String("<" + Common.TAG_MESSAGE + ">" 
 		+ "<" + Common.TAG_USERNAME + ">" + msgUserName + "</" + Common.TAG_USERNAME + ">"
 		+ "<" + Common.TAG_TEXT + ">" + msgText + "</" + Common.TAG_TEXT + ">"
@@ -231,11 +231,44 @@ public class Server
 		}
 	}
 	/**
+	 * Cette méthode envoit la liste des utilisateurs à tous les clients connectés.
+	 */
+	public synchronized void broadcastUserlist()
+	{
+		for (int i = clientList.size() - 1; i >= 0; i--)
+		{
+			ClientThread tempThread = clientList.get(i);
+			tempThread.sendUserlist(clientList);
+		}
+	}
+	/**
+	 * Cette variante de la méthode envoit la liste des utilisateurs à tous 
+	 * les clients connectés. Le thread passé en paramètres est exclus de la liste.
+	 * C'est utile lorsqu'un client quitte l'application et qu'on doit
+	 * envoyer une nouvelle liste aux clients.
+	 */
+	public synchronized void broadcastUserlist(ClientThread threadToSkip)
+	{
+		ArrayList<ClientThread> newList = new ArrayList<ClientThread>();
+		for (int i = clientList.size() - 1; i >= 0; i--)
+		{
+			if (clientList.get(i) != threadToSkip)
+			{
+				newList.add(clientList.get(i));
+			}
+		}
+		for (int i = newList.size() - 1; i >= 0; i--)
+		{
+			ClientThread tempThread = newList.get(i);
+			tempThread.sendUserlist(newList);
+		}
+	}
+	/**
 	 * Cette méthode force la déconnexion d'un client au server. 
 	 * Utilisé dans le logout ou si un client s'est déconnecté suite à une erreur.
 	 * @param _clientID L'ID unique du client connecté
 	 */
-	synchronized void disconnectClient(int _clientID)
+	public synchronized void disconnectClient(int _clientID)
 	{
 		//Il faut passer chacun des client dans la liste des threads pour trouver le bon
 		for (int i = 0; i < clientList.size(); i++)
@@ -248,5 +281,9 @@ public class Server
 				return;
 			}
 		}
+	}
+	public ArrayList<ClientThread> getClientList()
+	{
+		return clientList;
 	}
 }

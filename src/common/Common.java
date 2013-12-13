@@ -20,13 +20,19 @@ public class Common {
 	public static final String TAG_TEXT = "text";
 	public static final String TAG_TYPE = "type";
 	public static final String TAG_ROOM = "room";
-	public static final String TAG_USERNAME = "username";	
+	public static final String TAG_USERNAME = "username";
+	public static final String TAG_USERLIST = "userlist";
 	public static final String DEFAULT_ROOM = "Default";
 	public static final int LOGOUT = 0;
 	public static final int LOGGEDIN = 1;
 	public static final int MESSAGE = 2;
 	public static final int ACTION = 3;
 	public static final int SERVER_MESSAGE = 4;
+	public static final int CONNECTION_REFUSED = 5;
+	public static final int NICKCHANGE = 6;
+	public static final String COMMAND_ACTION = "/me";
+	public static final String COMMAND_LOGOUT = "/logout";
+	public static final String DEFAULT_NAME = "Anon";
 	private static final SimpleDateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("HH:mm");
 	
 	/**

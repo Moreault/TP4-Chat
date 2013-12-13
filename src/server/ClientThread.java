@@ -5,6 +5,7 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StringReader;
 import java.net.Socket;
+import java.util.ArrayList;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -25,7 +26,9 @@ public class ClientThread extends Thread
 	private static final String ERROR_COULD_NOT_SEND_MESSAGE = "Erreur: Le message n'a pas pu être envoyé à";
 	private static final String ERROR_COULD_NOT_CREATE_THREAD = "Erreur: Le thread du client n'a pas pu être créé.";
 	private static final String ERROR_CLOSING_STREAMS = "Erreur: L'application doit fermer les streams d'entrée/sortie.";
-	private static final String INFO_CLIENT_DISCONNECTED = "Un client s'est déconnecté.";
+	private static final String INFO_CLIENT_DISCONNECTED = "s'est déconnecté.";
+	private static final int MAXIMUM_NAME_LENGTH = 10;
+	private static final int MINIMUM_NAME_LENGTH = 3;
 	//L'information relative au client connecté
 	private String userName;
 	private int clientID;
@@ -63,7 +66,15 @@ public class ClientThread extends Thread
 			//Nous avons une string (message) que nous devons traiter comme du XML
 			Document document = builder.build(new StringReader(xml));
 			//Extrait la racine du document xml <username>
-			this.userName = document.getRootElement().getText();
+			String name = document.getRootElement().getText();
+			if (!this.validateName(name))
+			{
+				this.userName = Common.DEFAULT_NAME + this.clientID;
+			}
+			else
+			{
+				this.userName = name;
+			}
 		}
 		catch (IOException e)
 		{
@@ -85,6 +96,7 @@ public class ClientThread extends Thread
 	 * Cette méthode remplace celle de la classe Thread de Java. Elle continuera
 	 * de s'exécuter dans une boucle infinie tant que le client restera connecté.
 	 */
+	@Override
 	public void run()
 	{
 		boolean connected = true;
@@ -105,7 +117,8 @@ public class ClientThread extends Thread
 				String msgRoom = root.getChildText(Common.TAG_ROOM);
 				if (msgType == Common.LOGOUT)
 				{
-					//FAIRE UN BROADCAST POUR ANNONCER LE LOGOUT D'UN CLIENT À TOUS LES CLIENTS
+					server.broadcast("-> " + this.getUsername() + " " + INFO_CLIENT_DISCONNECTED, Common.SERVER_MESSAGE);
+					server.broadcastUserlist(this);
 				}
 				else if (msgType == Common.LOGGEDIN)
 				{
@@ -119,10 +132,15 @@ public class ClientThread extends Thread
 				{
 					//FAIRE UN BROADCAST POUR AFFICHER UNE ACTION À TOUS LES CLIENTS
 				}
+				else if (msgType == Common.NICKCHANGE)
+				{
+					server.broadcast("-> " + this.getUsername() + " a changé le nom", Common.SERVER_MESSAGE);
+					this.userName = text;
+					server.broadcastUserlist(this);
+				}
 			}
 			catch (IOException e)
 			{
-				Server.serverEcho(INFO_CLIENT_DISCONNECTED);
 				break;
 			}
 			catch (ClassNotFoundException e2)
@@ -140,7 +158,7 @@ public class ClientThread extends Thread
 	}
 	/**
 	 * Cette méthode envoit un message au client.
-	 * @return True si le message a été envoyé, False sinon
+	 * @return True si le message a été envoyé, False sinon.
 	 */
 	public boolean sendMessage(String msg)
 	{
@@ -188,5 +206,49 @@ public class ClientThread extends Thread
 	public String getUsername()
 	{
 		return userName;
+	}
+	/**
+	 * Cette méthode extrait la liste de noms des clients connectés et l'envoie à un client
+	 * en format XML.
+	 */
+	public void sendUserlist(ArrayList<ClientThread> clientList)
+	{
+		String xml = new String("<" + Common.TAG_USERLIST + ">");
+		for (int i = clientList.size() - 1; i >= 0; i--)
+		{
+			xml = xml + "<" + Common.TAG_USERNAME + ">" + clientList.get(i).getUsername() + "</" + Common.TAG_USERNAME + ">";
+		}
+		xml = xml + "</" + Common.TAG_USERLIST + ">";
+		this.sendMessage(xml);
+	}
+	/**
+	 * Cette méthode valide un nom d'utilisateur passé en paramètres.
+	 * @param name Le nom à valider.
+	 * @return True si il est valide, false sinon.
+	 */
+	public boolean validateName(String name)
+	{
+		//Doit être entre 3 et 10 caractères de long
+		if (!(name.length() <= MAXIMUM_NAME_LENGTH && name.length() >= MINIMUM_NAME_LENGTH))
+		{
+			return false;
+		}
+		//Doit être composé de lettres et de chiffres seulement
+		for (int i = 0; i < name.length(); i++)
+		{
+			if (!Character.isLetterOrDigit(name.charAt(i)))
+			{
+				return false;
+			}
+		}
+		//Doit être un nom unique
+		for (int i = 0; i < server.getClientList().size(); i++)
+		{
+			if (server.getClientList().get(i).getUsername().equalsIgnoreCase(name))
+			{
+				return false;
+			}
+		}
+		return true;
 	}
 }

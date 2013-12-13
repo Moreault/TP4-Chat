@@ -1,13 +1,13 @@
 package client;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.StringReader;
+import java.util.List;
+
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
 
 import org.jdom2.Document;
 import org.jdom2.Element;
@@ -31,9 +31,9 @@ public class ServerListener extends Thread
 	//Constantes
 	private static final String ERROR_SERVER_CLOSED_CONNECTION = "Erreur: Le server a fermé la connexion.";
 	//Variables
-	private ObjectInputStream sInput;
-	private ObjectOutputStream sOutput;
-	private Client client;
+	private final ObjectInputStream sInput;
+	private final ObjectOutputStream sOutput;
+	private final Client client;
 	
 	public ServerListener(Client _client, ObjectInputStream _sInput, ObjectOutputStream _sOutput)
 	{
@@ -47,6 +47,7 @@ public class ServerListener extends Thread
 	 * Cette méthode écoute le server et attends des messages puis les affiche
 	 * lorsqu'ils arrivent.
 	 */
+	@Override
 	public void run()
 	{
 		//Nous voulons que cette méthode roule sans arrêt, donc while (true)
@@ -62,51 +63,74 @@ public class ServerListener extends Thread
 				Document document = builder.build(new StringReader(msg));
 				//Extrait la racine du document xml <message>
 				Element root = document.getRootElement();
-				//Extraire la partie texte du message
-				String user = root.getChildText(Common.TAG_USERNAME);
-				String text = root.getChildText(Common.TAG_TEXT);
-				int msgType = Integer.parseInt(root.getChildText(Common.TAG_TYPE));
-				String msgRoom = root.getChildText(Common.TAG_ROOM);		
-				String finalMsg = new String(text);
-				if (msgType == Common.MESSAGE)
+				if (root.getName().equals(Common.TAG_MESSAGE))
 				{
-					finalMsg = Common.formatName(user) + " " + finalMsg;
-					if (client.getTimestamps())
+					//Extraire la partie texte du message
+					String user = root.getChildText(Common.TAG_USERNAME);
+					String text = root.getChildText(Common.TAG_TEXT);
+					int msgType = Integer.parseInt(root.getChildText(Common.TAG_TYPE));
+					String msgRoom = root.getChildText(Common.TAG_ROOM);		
+					String finalMsg = new String(text);
+					if (msgType == Common.MESSAGE)
 					{
-						finalMsg = Common.timeStamp() + " " + finalMsg;
+						finalMsg = Common.formatName(user) + " " + finalMsg;
+						if (client.getTimestamps())
+						{
+							finalMsg = Common.timeStamp() + " " + finalMsg;
+						}
+						client.getGUI().appendToTextArea(finalMsg);
+						System.out.print(finalMsg + "\n");
 					}
-					System.out.print(finalMsg + "\n");
+					else if (msgType == Common.ACTION)
+					{
+						finalMsg = "* " + user + " " + finalMsg;
+						if (client.getTimestamps())
+						{
+							finalMsg = Common.timeStamp() + " " + finalMsg;
+						}
+						client.getGUI().appendToTextArea(finalMsg);
+						System.out.print(finalMsg + "\n");
+					}
+					else if (msgType == Common.SERVER_MESSAGE)
+					{
+						if (client.getTimestamps())
+						{
+							finalMsg = Common.timeStamp() + " " + finalMsg;
+						}
+						client.getGUI().appendToTextArea(finalMsg + "\n");
+						client.clientEcho(finalMsg);
+					}
+					else if (msgType == Common.CONNECTION_REFUSED)
+					{
+						client.sendMessage("", Common.LOGOUT, Common.DEFAULT_ROOM);
+						System.exit(0);
+					}
+					else if (msgType == Common.LOGGEDIN)
+					{
+						finalMsg = "-> " + finalMsg;
+						if (client.getTimestamps())
+						{
+							finalMsg = Common.timeStamp() + " " + finalMsg;
+						}
+						client.getGUI().appendToTextArea(finalMsg  + " " + Common.MESSAGE_CONNECTED + "\n");
+						System.out.print(finalMsg  + " " + Common.MESSAGE_CONNECTED + "\n");
+					}
+					
 				}
-				else if (msgType == Common.ACTION)
+				else if (root.getName().equals(Common.TAG_USERLIST))
 				{
-					finalMsg = "* " + user + " " + finalMsg;
-					if (client.getTimestamps())
+					//Faire une liste avec les tags <username>
+					List<Element> list = root.getChildren(Common.TAG_USERNAME);
+					ObservableList<String> userlist = FXCollections.observableArrayList();
+					for (int i = 0; i < list.size(); i++) 
 					{
-						finalMsg = Common.timeStamp() + " " + finalMsg;
+						//Extrait les informations du noeud courant dans l'objet node
+						Element node = list.get(i);
+						//Extrait l'informations des balises <username>
+						userlist.add(node.getText());
 					}
-					System.out.print(finalMsg + "\n");
-				}
-				else if (msgType == Common.SERVER_MESSAGE)
-				{
-					if (client.getTimestamps())
-					{
-						finalMsg = Common.timeStamp() + " " + finalMsg;
-					}
-					client.clientEcho(finalMsg);
-				}
-				else if (msgType == Common.LOGGEDIN)
-				{
-					finalMsg = "-> " + finalMsg;
-					if (client.getTimestamps())
-					{
-						finalMsg = Common.timeStamp() + " " + finalMsg;
-					}
-					System.out.print(finalMsg  + " " + Common.MESSAGE_CONNECTED + "\n");
-				}
-				
-				//À FAIRE : Lorsque nous aurons l'interface graphique, ces messages
-				//s'afficheront dedans, pas dans la console. Duh.
-				
+					client.getGUI().setUsers(userlist);
+				}		
 				System.out.print("> ");
 			}
 			catch (IOException e)
